@@ -26,7 +26,7 @@ body { background:#f8f9fa; }
 
   <div id="game" style="display:none;">
     <h5 id="status">Esperando ronda...</h5>
-    <button id="buzz" class="btn btn-danger w-100" disabled onclick="buzz()">PRESIONAR</button>
+    <button id="buzz" class="btn btn-danger w-100" disabled onclick="enviarBuzz()">PRESIONAR</button>
   </div>
 </div>
 
@@ -43,11 +43,11 @@ function join(){
   document.getElementById("game").style.display="block";
 }
 
-function buzz(){
+function enviarBuzz(){
   socket.emit("buzz");
 }
 
-// CUENTA REGRESIVA
+// COUNTDOWN
 socket.on("countdown", ()=>{
   let c=3;
   const s=document.getElementById("status");
@@ -58,7 +58,7 @@ socket.on("countdown", ()=>{
     if(c<0){
       clearInterval(i);
       s.innerText="¡YA!";
-      document.getElementById("buzz").disabled = false; // 🔥 FIX
+      document.getElementById("buzz").disabled=false;
     }
   },1000);
 });
@@ -66,7 +66,7 @@ socket.on("countdown", ()=>{
 // GANADOR
 socket.on("winner",(player)=>{
   document.getElementById("status").innerText="Ganador: "+player.name;
-  document.getElementById("buzz").disabled = true;
+  document.getElementById("buzz").disabled=true;
 
   Swal.fire("Ganador",player.name,"success");
 });
@@ -74,10 +74,23 @@ socket.on("winner",(player)=>{
 // RESET
 socket.on("reset",()=>{
   document.getElementById("status").innerText="Esperando ronda...";
-  document.getElementById("buzz").disabled = true;
+  document.getElementById("buzz").disabled=true;
 });
 
-// EXPULSIÓN
+// 🔥 FINAL DEL CONCURSO
+socket.on("gameEnded", ()=>{
+  Swal.fire({
+    title: "🎉 Concurso finalizado",
+    text: "Gracias por participar",
+    icon: "success",
+    confirmButtonText: "OK"
+  });
+
+  document.getElementById("game").style.display="none";
+  document.getElementById("login").style.display="block";
+});
+
+// EXPULSIÓN INDIVIDUAL
 socket.on("kicked", ()=>{
   Swal.fire("Expulsado","El admin te sacó","warning");
 

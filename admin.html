@@ -9,9 +9,7 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <style>
-body {
-  background: #f8f9fa;
-}
+body { background:#f8f9fa; }
 </style>
 </head>
 
@@ -19,14 +17,11 @@ body {
 
 <h1 class="text-center mb-4">👨‍🏫 Panel Admin</h1>
 
-<!-- LOGIN -->
 <div id="loginBox" class="card p-4 text-center mx-auto" style="max-width:400px;">
-  <h4>Acceso Administrador</h4>
-  <input type="password" id="adminPass" class="form-control my-3" placeholder="Contraseña">
+  <input type="password" id="adminPass" class="form-control mb-3" placeholder="Contraseña">
   <button class="btn btn-primary w-100" onclick="login()">Entrar</button>
 </div>
 
-<!-- PANEL -->
 <div id="adminPanel" style="display:none;">
 
   <div class="text-end mb-3">
@@ -34,118 +29,99 @@ body {
   </div>
 
   <div class="text-center mb-4">
-    <button class="btn btn-success me-2" onclick="startRound()">▶ Iniciar Ronda</button>
-    <button class="btn btn-warning me-2" onclick="resetRound()">🔄 Reset</button>
-    <button class="btn btn-secondary" onclick="resetPoints()">♻ Reset Puntos</button>
+    <button class="btn btn-success me-2" onclick="startRound()">▶ Iniciar</button>
+    <button class="btn btn-danger me-2" onclick="kickAll()">⛔ Desconectar jugadores</button>
+    <button class="btn btn-secondary" onclick="resetPoints()">♻ Puntos</button>
   </div>
 
-  <div class="card p-3 mb-4 text-center">
+  <div class="card p-3 mb-3 text-center">
     <h3 id="winner">Sin ganador</h3>
   </div>
 
-  <div class="card p-3">
-    <h4>Jugadores conectados</h4>
-    <table class="table table-bordered mt-3">
-      <thead>
-        <tr>
-          <th>Nombre</th>
-          <th>Puntos</th>
-        </tr>
-      </thead>
-      <tbody id="players"></tbody>
-    </table>
-  </div>
+  <table class="table table-bordered">
+    <thead>
+      <tr>
+        <th>Nombre</th>
+        <th>Puntos</th>
+        <th>Acción</th>
+      </tr>
+    </thead>
+    <tbody id="players"></tbody>
+  </table>
 
 </div>
 
 <script>
 const socket = io("https://jeopardy-backend-k4ud.onrender.com");
 
-// ✅ AUTO LOGIN CORRECTO
 socket.on("connect", ()=>{
-  if(localStorage.getItem("admin") === "true"){
-    document.getElementById("loginBox").style.display="none";
-    document.getElementById("adminPanel").style.display="block";
-
-    socket.emit("adminLogin", "admin123", ()=>{});
+  if(localStorage.getItem("admin")){
+    loginSuccess();
+    socket.emit("adminLogin","admin123",()=>{});
   }
 });
 
-// LOGIN
 function login(){
-  const pass = document.getElementById("adminPass").value;
+  const pass=adminPass.value;
 
-  socket.emit("adminLogin", pass, (ok)=>{
-    if(!ok){
-      Swal.fire("Error", "Contraseña incorrecta", "error");
-    } else {
-      localStorage.setItem("admin", "true");
+  socket.emit("adminLogin",pass,(ok)=>{
+    if(!ok) return Swal.fire("Error","Incorrecta","error");
 
-      document.getElementById("loginBox").style.display="none";
-      document.getElementById("adminPanel").style.display="block";
-    }
+    localStorage.setItem("admin","true");
+    loginSuccess();
   });
 }
 
-// LOGOUT
+function loginSuccess(){
+  loginBox.style.display="none";
+  adminPanel.style.display="block";
+}
+
 function logout(){
   localStorage.removeItem("admin");
   location.reload();
 }
 
-// ADMIN
-function startRound(){
-  socket.emit("startRound");
-}
+function startRound(){ socket.emit("startRound"); }
+function resetPoints(){ socket.emit("resetPoints"); }
 
-function resetRound(){
-  socket.emit("resetRound");
-}
-
-function resetPoints(){
+// 🔥 FINALIZAR CONCURSO
+function kickAll(){
   Swal.fire({
-    title: "¿Resetear puntos?",
-    showCancelButton: true
+    title: "¿Finalizar concurso?",
+    text: "Se desconectarán todos los jugadores",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonText: "Sí, terminar"
   }).then((res)=>{
     if(res.isConfirmed){
-      socket.emit("resetPoints");
+      socket.emit("kickAll");
     }
   });
 }
 
-// GANADOR
-socket.on("winner",(player)=>{
-  document.getElementById("winner").innerText = "Ganador: " + player.name;
+function removePlayer(id){
+  socket.emit("removePlayer",id);
+}
 
-  Swal.fire({
-    title: "🏆 Ganador",
-    text: player.name,
-    icon: "success"
-  });
-
-  socket.emit("addPoint", player.id);
+socket.on("winner",(p)=>{
+  winner.innerText="Ganador: "+p.name;
+  socket.emit("addPoint",p.id);
 });
 
-// JUGADORES + COLOR 🎨
 socket.on("updatePlayers",(players)=>{
-  const table = document.getElementById("players");
-  table.innerHTML="";
+  const t=document.getElementById("players");
+  t.innerHTML="";
 
   for(let id in players){
-    table.innerHTML+=`
+    t.innerHTML+=`
       <tr>
         <td>
-          <span style="
-            display:inline-block;
-            width:12px;
-            height:12px;
-            border-radius:50%;
-            background:${players[id].color};
-            margin-right:6px;
-          "></span>
+          <span style="width:10px;height:10px;background:${players[id].color};display:inline-block;border-radius:50%;margin-right:5px;"></span>
           ${players[id].name}
         </td>
         <td>${players[id].points}</td>
+        <td><button class="btn btn-sm btn-danger" onclick="removePlayer('${id}')">❌</button></td>
       </tr>
     `;
   }
