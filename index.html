@@ -19,11 +19,13 @@ body { background:#f8f9fa; }
 <div class="card p-4 text-center shadow" style="width:350px;">
   <h3>🎮 Jeopardy</h3>
 
+  <!-- LOGIN -->
   <div id="login">
     <input id="name" class="form-control mb-3" placeholder="Tu nombre">
     <button class="btn btn-primary w-100" onclick="join()">Entrar</button>
   </div>
 
+  <!-- JUEGO -->
   <div id="game" style="display:none;">
     <h5 id="status">Esperando ronda...</h5>
     <button id="buzz" class="btn btn-danger w-100" disabled onclick="enviarBuzz()">PRESIONAR</button>
@@ -31,11 +33,78 @@ body { background:#f8f9fa; }
 </div>
 
 <script>
-const socket = io("https://jeopardy-backend-k4ud.onrender.com");
+let socket = null;
 
+// 🔌 CONECTAR SOCKET (NUEVO CADA VEZ)
+function conectarSocket(){
+  socket = io("https://jeopardy-backend-k4ud.onrender.com");
+
+  // 🚫 nombre duplicado
+  socket.on("nameTaken", ()=>{
+    Swal.fire("Error","Nombre ya en uso","error");
+  });
+
+  // ⏱ COUNTDOWN
+  socket.on("countdown", ()=>{
+    let c = 3;
+    const s = document.getElementById("status");
+
+    const i = setInterval(()=>{
+      s.innerText = c;
+      c--;
+
+      if(c < 0){
+        clearInterval(i);
+        s.innerText = "¡YA!";
+        document.getElementById("buzz").disabled = false;
+      }
+    },1000);
+  });
+
+  // 🏆 GANADOR
+  socket.on("winner",(player)=>{
+    document.getElementById("status").innerText = "Ganador: " + player.name;
+    document.getElementById("buzz").disabled = true;
+
+    Swal.fire("Ganador", player.name, "success");
+  });
+
+  // 🔄 RESET RONDA
+  socket.on("reset", ()=>{
+    document.getElementById("status").innerText = "Esperando ronda...";
+    document.getElementById("buzz").disabled = true;
+  });
+
+  // 🎉 FIN DEL CONCURSO
+  socket.on("gameEnded", ()=>{
+    Swal.fire({
+      title: "🎉 Concurso finalizado",
+      text: "Gracias por participar",
+      icon: "success"
+    });
+
+    resetUI();
+  });
+
+  // ❌ EXPULSADO
+  socket.on("kicked", ()=>{
+    Swal.fire("Expulsado","El admin te sacó","warning");
+    resetUI();
+  });
+}
+
+// 🚀 ENTRAR AL JUEGO
 function join(){
   const name = document.getElementById("name").value;
-  if(!name) return;
+
+  if(!name){
+    return Swal.fire("Error","Ingresa tu nombre","warning");
+  }
+
+  // 🔥 NUEVO SOCKET SI ES NECESARIO
+  if(!socket || socket.disconnected){
+    conectarSocket();
+  }
 
   socket.emit("join", name);
 
@@ -43,64 +112,27 @@ function join(){
   document.getElementById("game").style.display="block";
 }
 
+// 🔴 BOTÓN BUZZ
 function enviarBuzz(){
-  socket.emit("buzz");
+  if(socket){
+    socket.emit("buzz");
+  }
 }
 
-// 🚫 nombre duplicado
-socket.on("nameTaken", ()=>{
-  Swal.fire("Error","Nombre ya en uso","error");
-});
-
-// COUNTDOWN
-socket.on("countdown", ()=>{
-  let c=3;
-  const s=document.getElementById("status");
-
-  const i=setInterval(()=>{
-    s.innerText=c;
-    c--;
-    if(c<0){
-      clearInterval(i);
-      s.innerText="¡YA!";
-      document.getElementById("buzz").disabled=false;
-    }
-  },1000);
-});
-
-// GANADOR
-socket.on("winner",(player)=>{
-  document.getElementById("status").innerText="Ganador: "+player.name;
-  document.getElementById("buzz").disabled=true;
-
-  Swal.fire("Ganador",player.name,"success");
-});
-
-// RESET
-socket.on("reset",()=>{
-  document.getElementById("status").innerText="Esperando ronda...";
-  document.getElementById("buzz").disabled=true;
-});
-
-// 🎉 FINAL DEL CONCURSO
-socket.on("gameEnded", ()=>{
-  Swal.fire({
-    title: "🎉 Concurso finalizado",
-    text: "Gracias por participar",
-    icon: "success"
-  });
-
+// 🔄 RESETEAR INTERFAZ + SOCKET
+function resetUI(){
   document.getElementById("game").style.display="none";
   document.getElementById("login").style.display="block";
-});
 
-// ❌ EXPULSIÓN
-socket.on("kicked", ()=>{
-  Swal.fire("Expulsado","El admin te sacó","warning");
+  document.getElementById("status").innerText = "Esperando ronda...";
+  document.getElementById("buzz").disabled = true;
 
-  document.getElementById("game").style.display="none";
-  document.getElementById("login").style.display="block";
-});
+  // 🔥 destruir conexión anterior
+  if(socket){
+    socket.disconnect();
+    socket = null;
+  }
+}
 </script>
 
 </body>
