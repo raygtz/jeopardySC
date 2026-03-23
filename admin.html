@@ -4,22 +4,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Admin Jeopardy</title>
 
-<!-- Bootstrap -->
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-
-<!-- Socket -->
 <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-
-<!-- SweetAlert -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <style>
 body {
-  background: linear-gradient(135deg, #0f172a, #1e3a8a);
-  color: white;
-}
-.card {
-  background: #1e293b;
+  background: #f8f9fa;
 }
 </style>
 </head>
@@ -28,19 +19,24 @@ body {
 
 <h1 class="text-center mb-4">👨‍🏫 Panel Admin</h1>
 
-<!-- 🔐 LOGIN -->
+<!-- LOGIN -->
 <div id="loginBox" class="card p-4 text-center mx-auto" style="max-width:400px;">
   <h4>Acceso Administrador</h4>
   <input type="password" id="adminPass" class="form-control my-3" placeholder="Contraseña">
   <button class="btn btn-primary w-100" onclick="login()">Entrar</button>
 </div>
 
-<!-- 🎮 PANEL ADMIN -->
+<!-- PANEL -->
 <div id="adminPanel" style="display:none;">
 
-  <div class="text-center mb-4 mt-4">
+  <div class="text-end mb-3">
+    <button class="btn btn-danger" onclick="logout()">Cerrar sesión</button>
+  </div>
+
+  <div class="text-center mb-4">
     <button class="btn btn-success me-2" onclick="startRound()">▶ Iniciar Ronda</button>
-    <button class="btn btn-warning" onclick="resetRound()">🔄 Reset</button>
+    <button class="btn btn-warning me-2" onclick="resetRound()">🔄 Reset</button>
+    <button class="btn btn-secondary" onclick="resetPoints()">♻ Reset Puntos</button>
   </div>
 
   <div class="card p-3 mb-4 text-center">
@@ -48,8 +44,8 @@ body {
   </div>
 
   <div class="card p-3">
-    <h4>Jugadores</h4>
-    <table class="table table-dark table-striped mt-3">
+    <h4>Jugadores conectados</h4>
+    <table class="table table-bordered mt-3">
       <thead>
         <tr>
           <th>Nombre</th>
@@ -65,19 +61,23 @@ body {
 <script>
 const socket = io("https://jeopardy-backend-k4ud.onrender.com");
 
-// 🔐 LOGIN ADMIN
+// 🔐 AUTO LOGIN
+if(localStorage.getItem("admin") === "true"){
+  document.getElementById("loginBox").style.display="none";
+  document.getElementById("adminPanel").style.display="block";
+
+  socket.emit("adminLogin", "admin123", ()=>{});
+}
+
+// LOGIN
 function login(){
   const pass = document.getElementById("adminPass").value;
-
-  if(!pass){
-    return Swal.fire("Error", "Ingresa la contraseña", "warning");
-  }
 
   socket.emit("adminLogin", pass, (ok)=>{
     if(!ok){
       Swal.fire("Error", "Contraseña incorrecta", "error");
     } else {
-      Swal.fire("Bienvenido", "Acceso concedido", "success");
+      localStorage.setItem("admin", "true");
 
       document.getElementById("loginBox").style.display="none";
       document.getElementById("adminPanel").style.display="block";
@@ -85,31 +85,39 @@ function login(){
   });
 }
 
-// ▶ INICIAR RONDA
+// LOGOUT
+function logout(){
+  localStorage.removeItem("admin");
+  location.reload();
+}
+
+// FUNCIONES ADMIN
 function startRound(){
   socket.emit("startRound");
 }
 
-// 🔄 RESET
 function resetRound(){
   socket.emit("resetRound");
 }
 
-// 🏆 GANADOR
+function resetPoints(){
+  Swal.fire({
+    title: "¿Resetear puntos?",
+    showCancelButton: true
+  }).then((res)=>{
+    if(res.isConfirmed){
+      socket.emit("resetPoints");
+    }
+  });
+}
+
+// EVENTOS
 socket.on("winner",(name)=>{
   document.getElementById("winner").innerText="Ganador: " + name;
-
-  Swal.fire({
-    title: "🏆 Ganador",
-    text: name,
-    icon: "success",
-    confirmButtonText: "Continuar"
-  });
-
+  Swal.fire("Ganador", name, "success");
   socket.emit("addPoint", name);
 });
 
-// 👥 ACTUALIZAR JUGADORES
 socket.on("updatePlayers",(players)=>{
   const table = document.getElementById("players");
   table.innerHTML="";
@@ -122,15 +130,6 @@ socket.on("updatePlayers",(players)=>{
       </tr>
     `;
   }
-});
-
-// 🧪 DEBUG (opcional)
-socket.on("connect", ()=>{
-  console.log("Conectado al servidor");
-});
-
-socket.on("connect_error", (err)=>{
-  console.log("Error conexión:", err.message);
 });
 </script>
 

@@ -4,19 +4,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Jeopardy Escolar</title>
 
-<!-- Bootstrap -->
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-
-<!-- Socket -->
 <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-
-<!-- SweetAlert -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <style>
 body {
-  background: linear-gradient(135deg, #0d1b2a, #1b263b);
-  color: white;
+  background: #f8f9fa;
 }
 #buzz {
   height: 120px;
@@ -27,7 +21,7 @@ body {
 
 <body class="d-flex justify-content-center align-items-center vh-100">
 
-<div class="card p-4 shadow-lg text-center" style="width: 350px; background:#1e293b;">
+<div class="card p-4 shadow text-center" style="width: 350px;">
 
   <h3 class="mb-3">🎮 Jeopardy</h3>
 
@@ -44,21 +38,13 @@ body {
 </div>
 
 <script>
-const socket = io("https://TU_BACKEND_URL.onrender.com");
-
-let myName = "";
+const socket = io("https://jeopardy-backend-k4ud.onrender.com");
 
 function join(){
-  myName = document.getElementById("name").value;
-  if(!myName) return;
+  const name = document.getElementById("name").value;
+  if(!name) return;
 
-  socket.emit("join", myName, (color)=>{
-    Swal.fire({
-      title: "¡Listo!",
-      text: "Tu color es asignado 🎨",
-      icon: "success"
-    });
-  });
+  socket.emit("join", name);
 
   document.getElementById("login").style.display="none";
   document.getElementById("game").style.display="block";
@@ -87,7 +73,6 @@ socket.on("countdown", ()=>{
 socket.on("winner",(name)=>{
   document.getElementById("status").innerText="Ganador: "+name;
   document.getElementById("buzz").disabled=true;
-
   Swal.fire("Ganador", name, "success");
 });
 
