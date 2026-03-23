@@ -9,32 +9,25 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <style>
-body {
-  background: #f8f9fa;
-}
-#buzz {
-  height: 120px;
-  font-size: 30px;
-}
+body { background:#f8f9fa; }
+#buzz { height:120px; font-size:30px; }
 </style>
 </head>
 
 <body class="d-flex justify-content-center align-items-center vh-100">
 
-<div class="card p-4 shadow text-center" style="width: 350px;">
-
-  <h3 class="mb-3">🎮 Jeopardy</h3>
+<div class="card p-4 text-center shadow" style="width:350px;">
+  <h3>🎮 Jeopardy</h3>
 
   <div id="login">
-    <input type="text" id="name" class="form-control mb-3" placeholder="Tu nombre">
+    <input id="name" class="form-control mb-3" placeholder="Tu nombre">
     <button class="btn btn-primary w-100" onclick="join()">Entrar</button>
   </div>
 
   <div id="game" style="display:none;">
-    <h5 id="status" class="mb-3">Esperando ronda...</h5>
+    <h5 id="status">Esperando ronda...</h5>
     <button id="buzz" class="btn btn-danger w-100" disabled onclick="buzz()">PRESIONAR</button>
   </div>
-
 </div>
 
 <script>
@@ -46,39 +39,49 @@ function join(){
 
   socket.emit("join", name);
 
-  document.getElementById("login").style.display="none";
-  document.getElementById("game").style.display="block";
+  login.style.display="none";
+  game.style.display="block";
 }
 
 function buzz(){
   socket.emit("buzz");
 }
 
+// CUENTA REGRESIVA
 socket.on("countdown", ()=>{
-  let count = 3;
-  const status = document.getElementById("status");
+  let c=3;
+  const s=document.getElementById("status");
 
-  const interval = setInterval(()=>{
-    status.innerText = count;
-    count--;
-
-    if(count < 0){
-      clearInterval(interval);
-      status.innerText = "¡YA!";
-      document.getElementById("buzz").disabled = false;
+  const i=setInterval(()=>{
+    s.innerText=c;
+    c--;
+    if(c<0){
+      clearInterval(i);
+      s.innerText="¡YA!";
+      buzz.disabled=false;
     }
   },1000);
 });
 
-socket.on("winner",(name)=>{
-  document.getElementById("status").innerText="Ganador: "+name;
-  document.getElementById("buzz").disabled=true;
-  Swal.fire("Ganador", name, "success");
+// GANADOR
+socket.on("winner",(player)=>{
+  status.innerText="Ganador: "+player.name;
+  buzz.disabled=true;
+  Swal.fire("Ganador",player.name,"success");
 });
 
+// RESET
 socket.on("reset",()=>{
-  document.getElementById("status").innerText="Esperando ronda...";
-  document.getElementById("buzz").disabled=true;
+  status.innerText="Esperando ronda...";
+  buzz.disabled=true;
+});
+
+// 🔥 EXPULSIÓN REAL
+socket.on("kicked", ()=>{
+  Swal.fire("Expulsado","El admin te sacó","warning");
+
+  game.style.display="none";
+  login.style.display="block";
 });
 </script>
 
