@@ -61,13 +61,15 @@ body {
 <script>
 const socket = io("https://jeopardy-backend-k4ud.onrender.com");
 
-// 🔐 AUTO LOGIN
-if(localStorage.getItem("admin") === "true"){
-  document.getElementById("loginBox").style.display="none";
-  document.getElementById("adminPanel").style.display="block";
+// ✅ AUTO LOGIN CORRECTO
+socket.on("connect", ()=>{
+  if(localStorage.getItem("admin") === "true"){
+    document.getElementById("loginBox").style.display="none";
+    document.getElementById("adminPanel").style.display="block";
 
-  socket.emit("adminLogin", "admin123", ()=>{});
-}
+    socket.emit("adminLogin", "admin123", ()=>{});
+  }
+});
 
 // LOGIN
 function login(){
@@ -91,7 +93,7 @@ function logout(){
   location.reload();
 }
 
-// FUNCIONES ADMIN
+// ADMIN
 function startRound(){
   socket.emit("startRound");
 }
@@ -111,13 +113,20 @@ function resetPoints(){
   });
 }
 
-// EVENTOS
-socket.on("winner",(name)=>{
-  document.getElementById("winner").innerText="Ganador: " + name;
-  Swal.fire("Ganador", name, "success");
-  socket.emit("addPoint", name);
+// GANADOR
+socket.on("winner",(player)=>{
+  document.getElementById("winner").innerText = "Ganador: " + player.name;
+
+  Swal.fire({
+    title: "🏆 Ganador",
+    text: player.name,
+    icon: "success"
+  });
+
+  socket.emit("addPoint", player.id);
 });
 
+// JUGADORES + COLOR 🎨
 socket.on("updatePlayers",(players)=>{
   const table = document.getElementById("players");
   table.innerHTML="";
@@ -125,7 +134,17 @@ socket.on("updatePlayers",(players)=>{
   for(let id in players){
     table.innerHTML+=`
       <tr>
-        <td>${players[id].name}</td>
+        <td>
+          <span style="
+            display:inline-block;
+            width:12px;
+            height:12px;
+            border-radius:50%;
+            background:${players[id].color};
+            margin-right:6px;
+          "></span>
+          ${players[id].name}
+        </td>
         <td>${players[id].points}</td>
       </tr>
     `;
