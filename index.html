@@ -1,60 +1,65 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jeopardy Escolar</title>
+
+<!-- Bootstrap -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+<!-- Socket -->
 <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-<title>Jeopardy Escolar Pro</title>
+
+<!-- SweetAlert -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
 <style>
-body { font-family: Arial; background:#111; color:white; text-align:center; }
-button { padding:15px; font-size:18px; margin:5px; border-radius:8px; }
-#buzz { background:red; color:white; width:80%; }
-#adminPanel { background:#222; padding:10px; margin-top:20px; }
-table { width:100%; margin-top:10px; }
-td { padding:5px; }
+body {
+  background: linear-gradient(135deg, #0d1b2a, #1b263b);
+  color: white;
+}
+#buzz {
+  height: 120px;
+  font-size: 30px;
+}
 </style>
 </head>
-<body>
 
-<h1>🎮 Jeopardy Escolar PRO</h1>
+<body class="d-flex justify-content-center align-items-center vh-100">
 
-<div id="login">
-<input type="text" id="name" placeholder="Tu nombre">
-<button onclick="join()">Entrar</button>
+<div class="card p-4 shadow-lg text-center" style="width: 350px; background:#1e293b;">
+
+  <h3 class="mb-3">🎮 Jeopardy</h3>
+
+  <div id="login">
+    <input type="text" id="name" class="form-control mb-3" placeholder="Tu nombre">
+    <button class="btn btn-primary w-100" onclick="join()">Entrar</button>
+  </div>
+
+  <div id="game" style="display:none;">
+    <h5 id="status" class="mb-3">Esperando ronda...</h5>
+    <button id="buzz" class="btn btn-danger w-100" disabled onclick="buzz()">PRESIONAR</button>
+  </div>
+
 </div>
-
-<div id="game" style="display:none;">
-<h2 id="status">Esperando ronda...</h2>
-<button id="buzz" onclick="buzz()" disabled>PRESIONAR</button>
-</div>
-
-<hr>
-
-<div id="adminLogin">
-<h3>Admin</h3>
-<input type="password" id="adminPass" placeholder="Contraseña">
-<button onclick="adminLogin()">Entrar</button>
-</div>
-
-<div id="adminPanel" style="display:none;">
-<button onclick="startRound()">Iniciar Ronda</button>
-<button onclick="resetRound()">Reset</button>
-</div>
-
-<h3>Tabla de puntos</h3>
-<table id="scoreTable"></table>
-
-<audio id="winSound" src="https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg"></audio>
 
 <script>
-const socket = io("https://jeopardy-backend-k4ud.onrender.com");
+const socket = io("https://TU_BACKEND_URL.onrender.com");
 
 let myName = "";
-let currentWinner = "";
 
 function join(){
   myName = document.getElementById("name").value;
-  if(!myName) return alert("Escribe tu nombre");
-  socket.emit("join", myName);
+  if(!myName) return;
+
+  socket.emit("join", myName, (color)=>{
+    Swal.fire({
+      title: "¡Listo!",
+      text: "Tu color es asignado 🎨",
+      icon: "success"
+    });
+  });
+
   document.getElementById("login").style.display="none";
   document.getElementById("game").style.display="block";
 }
@@ -63,62 +68,34 @@ function buzz(){
   socket.emit("buzz");
 }
 
-function adminLogin(){
-  const pass = document.getElementById("adminPass").value;
-  socket.emit("adminLogin", pass, (success)=>{
-    if(success){
-      document.getElementById("adminPanel").style.display="block";
-      alert("Admin autorizado");
-    } else {
-      alert("Contraseña incorrecta");
-    }
-  });
-}
-
-function startRound(){
-  socket.emit("startRound");
-}
-
-function resetRound(){
-  socket.emit("resetRound");
-}
-
 socket.on("countdown", ()=>{
   let count = 3;
-  document.getElementById("status").innerText="Preparados...";
+  const status = document.getElementById("status");
+
   const interval = setInterval(()=>{
-    document.getElementById("status").innerText=count;
+    status.innerText = count;
     count--;
-    if(count<0){
+
+    if(count < 0){
       clearInterval(interval);
-      document.getElementById("status").innerText="¡YA!";
-      document.getElementById("buzz").disabled=false;
+      status.innerText = "¡YA!";
+      document.getElementById("buzz").disabled = false;
     }
   },1000);
 });
 
 socket.on("winner",(name)=>{
-  currentWinner=name;
   document.getElementById("status").innerText="Ganador: "+name;
   document.getElementById("buzz").disabled=true;
-  document.getElementById("winSound").play();
-  socket.emit("addPoint", name);
+
+  Swal.fire("Ganador", name, "success");
 });
 
 socket.on("reset",()=>{
   document.getElementById("status").innerText="Esperando ronda...";
   document.getElementById("buzz").disabled=true;
 });
-
-socket.on("updatePlayers",(players)=>{
-  const table=document.getElementById("scoreTable");
-  table.innerHTML="";
-  for(let id in players){
-    table.innerHTML+=`<tr><td>${players[id].name}</td><td>${players[id].points}</td></tr>`;
-  }
-});
 </script>
 
 </body>
-
 </html>
