@@ -47,6 +47,11 @@ function enviarBuzz(){
   socket.emit("buzz");
 }
 
+// 🚫 nombre duplicado
+socket.on("nameTaken", ()=>{
+  Swal.fire("Error","Nombre ya en uso","error");
+});
+
 // COUNTDOWN
 socket.on("countdown", ()=>{
   let c=3;
@@ -77,20 +82,19 @@ socket.on("reset",()=>{
   document.getElementById("buzz").disabled=true;
 });
 
-// 🔥 FINAL DEL CONCURSO
+// 🎉 FINAL DEL CONCURSO
 socket.on("gameEnded", ()=>{
   Swal.fire({
     title: "🎉 Concurso finalizado",
     text: "Gracias por participar",
-    icon: "success",
-    confirmButtonText: "OK"
+    icon: "success"
   });
 
   document.getElementById("game").style.display="none";
   document.getElementById("login").style.display="block";
 });
 
-// EXPULSIÓN INDIVIDUAL
+// ❌ EXPULSIÓN
 socket.on("kicked", ()=>{
   Swal.fire("Expulsado","El admin te sacó","warning");
 
