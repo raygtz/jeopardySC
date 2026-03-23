@@ -39,8 +39,8 @@ function join(){
 
   socket.emit("join", name);
 
-  login.style.display="none";
-  game.style.display="block";
+  document.getElementById("login").style.display="none";
+  document.getElementById("game").style.display="block";
 }
 
 function buzz(){
@@ -58,30 +58,31 @@ socket.on("countdown", ()=>{
     if(c<0){
       clearInterval(i);
       s.innerText="¡YA!";
-      buzz.disabled=false;
+      document.getElementById("buzz").disabled = false; // 🔥 FIX
     }
   },1000);
 });
 
 // GANADOR
 socket.on("winner",(player)=>{
-  status.innerText="Ganador: "+player.name;
-  buzz.disabled=true;
+  document.getElementById("status").innerText="Ganador: "+player.name;
+  document.getElementById("buzz").disabled = true;
+
   Swal.fire("Ganador",player.name,"success");
 });
 
 // RESET
 socket.on("reset",()=>{
-  status.innerText="Esperando ronda...";
-  buzz.disabled=true;
+  document.getElementById("status").innerText="Esperando ronda...";
+  document.getElementById("buzz").disabled = true;
 });
 
-// 🔥 EXPULSIÓN REAL
+// EXPULSIÓN
 socket.on("kicked", ()=>{
   Swal.fire("Expulsado","El admin te sacó","warning");
 
-  game.style.display="none";
-  login.style.display="block";
+  document.getElementById("game").style.display="none";
+  document.getElementById("login").style.display="block";
 });
 </script>
 
